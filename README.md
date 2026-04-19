@@ -1,5 +1,9 @@
 # QMesh MCP Server
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen)](#install)
+[![MCP](https://img.shields.io/badge/Model_Context_Protocol-read--only-000000)](https://modelcontextprotocol.io)
+
 Query the [QMesh](https://q-mesh.com) crowdtesting platform from Claude Desktop, Cursor, Continue, and any other [Model Context Protocol](https://modelcontextprotocol.io) client.
 
 QMesh connects businesses to real users and QA-verified testers for finding bugs before launch. This MCP server lets AI assistants surface QMesh data on demand — tester leaderboards, public pricing plans, platform scale.
@@ -62,7 +66,7 @@ Use the same stdio transport config. Refer to your client's MCP setup docs.
 ## Development
 
 ```bash
-git clone https://github.com/howard19871030/qmesh-mcp
+git clone https://github.com/onedaysoftware-support/qmesh-mcp
 cd qmesh-mcp
 npm install
 npm run build
@@ -79,7 +83,7 @@ Planned for future releases (pending platform milestones):
 - `search_bug_patterns` — de-identified bug pattern knowledge base
 - `get_task_status` — poll a task's progress and bug summary
 
-Follow [github.com/howard19871030/qmesh-mcp](https://github.com/howard19871030/qmesh-mcp) for updates.
+Follow [github.com/onedaysoftware-support/qmesh-mcp](https://github.com/onedaysoftware-support/qmesh-mcp) for updates.
 
 ## License
 

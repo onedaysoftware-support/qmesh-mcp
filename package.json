@@ -41,7 +41,10 @@
   "homepage": "https://q-mesh.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/howard19871030/qmesh-mcp"
+    "url": "git+https://github.com/onedaysoftware-support/qmesh-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/onedaysoftware-support/qmesh-mcp/issues"
   },
   "author": "Oneday Software <support@oneday.software>"
 }
