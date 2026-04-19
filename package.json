@@ -1,0 +1,47 @@
+{
+  "name": "@qmesh/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for QMesh — query QMesh crowdtesting platform data from Claude, Cursor, and other MCP clients.",
+  "type": "module",
+  "bin": {
+    "qmesh-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc && chmod +x dist/index.js",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "qmesh",
+    "crowdtesting",
+    "claude",
+    "testing",
+    "quality-assurance",
+    "bug-bounty"
+  ],
+  "license": "MIT",
+  "homepage": "https://q-mesh.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/howard19871030/qmesh-mcp"
+  },
+  "author": "Oneday Software <support@oneday.software>"
+}
