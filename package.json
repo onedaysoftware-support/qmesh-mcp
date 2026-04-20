@@ -1,5 +1,8 @@
 {
-  "name": "@qmesh/mcp",
+  "name": "@q-mesh/mcp",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "0.1.0",
   "description": "MCP server for QMesh — query QMesh crowdtesting platform data from Claude, Cursor, and other MCP clients.",
   "type": "module",

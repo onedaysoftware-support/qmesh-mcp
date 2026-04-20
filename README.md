@@ -23,13 +23,13 @@ All tools are **read-only** and hit QMesh's public API; no authentication requir
 Once published to npm:
 
 ```bash
-npm install -g @qmesh/mcp
+npm install -g @q-mesh/mcp
 ```
 
 Or run on-demand via `npx` (no install):
 
 ```bash
-npx -y @qmesh/mcp
+npx -y @q-mesh/mcp
 ```
 
 ## Claude Desktop
@@ -44,7 +44,7 @@ Add to your Claude Desktop config:
   "mcpServers": {
     "qmesh": {
       "command": "npx",
-      "args": ["-y", "@qmesh/mcp"]
+      "args": ["-y", "@q-mesh/mcp"]
     }
   }
 }
