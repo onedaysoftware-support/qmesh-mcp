@@ -2,19 +2,33 @@ const SUPABASE_URL = "https://cvizjnidcgonqsrwxubz.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_Dkp1VuzTKHAdV3UOaW2Zuw_VDd_yO4p";
 
-const HEADERS = {
-  apikey: SUPABASE_PUBLISHABLE_KEY,
-  Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
-  "Content-Type": "application/json",
-};
+// Optional user JWT for authenticated calls (e.g. submit_ai_signal).
+// Users can set QMESH_USER_TOKEN via Claude Desktop env to authenticate as themselves.
+const USER_TOKEN = process.env.QMESH_USER_TOKEN || "";
+
+function buildHeaders(requireAuth = false): HeadersInit {
+  const headers: Record<string, string> = {
+    apikey: SUPABASE_PUBLISHABLE_KEY,
+    "Content-Type": "application/json",
+  };
+  // For authenticated RPC (write operations), use user JWT when available.
+  // Falls back to publishable key — the RPC will reject if it requires auth.uid().
+  if (requireAuth && USER_TOKEN) {
+    headers.Authorization = `Bearer ${USER_TOKEN}`;
+  } else {
+    headers.Authorization = `Bearer ${SUPABASE_PUBLISHABLE_KEY}`;
+  }
+  return headers;
+}
 
 async function callRpc<T>(
   name: string,
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
+  options: { auth?: boolean } = {}
 ): Promise<T> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: "POST",
-    headers: HEADERS,
+    headers: buildHeaders(options.auth),
     body: JSON.stringify(params),
   });
   if (!res.ok) {
@@ -25,7 +39,7 @@ async function callRpc<T>(
 
 async function queryTable<T>(path: string): Promise<T> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: HEADERS,
+    headers: buildHeaders(false),
   });
   if (!res.ok) {
     throw new Error(`Query ${path} failed: ${res.status} ${await res.text()}`);
@@ -103,6 +117,37 @@ const SEARCHABLE_FIELDS =
   "platforms_affected,observed_behavior,expected_behavior,user_impact," +
   "detection_technique,detection_checklist,root_cause_category," +
   "tags,source_bug_count";
+
+export interface SubmitAiSignalArgs {
+  task_id: string;
+  title: string;
+  description?: string;
+  reproduction_steps?: string;
+  severity: "critical" | "high" | "medium" | "low";
+  category_guess?: string;
+  pattern_code?: string;
+  submitted_by?: string;
+  confidence?: number;
+}
+
+export async function submitAiSignal(args: SubmitAiSignalArgs): Promise<string> {
+  const id = await callRpc<string>(
+    "submit_ai_signal",
+    {
+      p_task_id:       args.task_id,
+      p_title:         args.title,
+      p_description:   args.description ?? null,
+      p_reproduction:  args.reproduction_steps ?? null,
+      p_severity:      args.severity,
+      p_category:      args.category_guess ?? null,
+      p_pattern_code:  args.pattern_code ?? null,
+      p_submitted_by:  args.submitted_by ?? "mcp-client",
+      p_confidence:    args.confidence ?? 0.7,
+    },
+    { auth: true }
+  );
+  return id;
+}
 
 export async function searchBugPatterns(
   args: SearchBugPatternsArgs = {}

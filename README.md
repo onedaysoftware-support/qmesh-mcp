@@ -18,6 +18,7 @@ All tools are **read-only** and hit QMesh's public API; no authentication requir
 | `get_leaderboard` | Day / week / month / year tester rankings with QIS and bug stats |
 | `list_pricing_plans` | Publicly available testing plans with budget, features, refund policy |
 | `search_bug_patterns` | De-identified Bug Pattern knowledge base (scenario templates, detection techniques, checklists). Filter by category, severity, domain, or free-text. |
+| `submit_ai_signal` | Submit an AI-detected quality signal to QMesh's Signal Engine for a specific task. **Requires `QMESH_USER_TOKEN` env var** (a Supabase JWT for the task owner or admin). Signals are deduped, scored, and routed to human QA for judgment. |
 
 ## Install
 
@@ -45,13 +46,25 @@ Add to your Claude Desktop config:
   "mcpServers": {
     "qmesh": {
       "command": "npx",
-      "args": ["-y", "@q-mesh/mcp"]
+      "args": ["-y", "@q-mesh/mcp"],
+      "env": {
+        "QMESH_USER_TOKEN": "<optional: your Supabase JWT for submit_ai_signal>"
+      }
     }
   }
 }
 ```
 
-Restart Claude Desktop. You should see the hammer icon with the three QMesh tools.
+Restart Claude Desktop. You should see the hammer icon with the QMesh tools.
+
+### Getting `QMESH_USER_TOKEN` (optional, only for `submit_ai_signal`)
+
+1. Log in to [q-mesh.com](https://q-mesh.com) as a business user who owns the target task (or admin)
+2. Open browser DevTools → Application → Local Storage → `q-mesh.com`
+3. Find key `sb-cvizjnidcgonqsrwxubz-auth-token` → copy the `access_token` field value
+4. Paste into `QMESH_USER_TOKEN` in the config above
+
+Tokens expire — you'll need to refresh periodically. All read-only tools work without a token.
 
 ## Cursor / Continue / Other MCP clients
 
@@ -66,6 +79,7 @@ Use the same stdio transport config. Refer to your client's MCP setup docs.
 - "Search QMesh bug patterns about XSS"
 - "What common form-ux bugs does QMesh have documented?"
 - "List all critical security bug patterns from QMesh"
+- "I'm testing my task (id=xxx) and found the login page accepts non-existent accounts — submit this as a signal to QMesh"
 
 ## Development
 

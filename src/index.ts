@@ -10,12 +10,14 @@ import {
   getPlatformStats,
   listPricingPlans,
   searchBugPatterns,
+  submitAiSignal,
   type LeaderboardPeriod,
   type SearchBugPatternsArgs,
+  type SubmitAiSignalArgs,
 } from "./qmesh-client.js";
 
 const server = new Server(
-  { name: "qmesh-mcp", version: "0.2.0" },
+  { name: "qmesh-mcp", version: "0.3.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -51,6 +53,54 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {},
+    },
+  },
+  {
+    name: "submit_ai_signal",
+    description:
+      "Submit an AI-detected quality signal to QMesh's Signal Engine for a specific task. Use this when you (the AI) are testing a product at the user's request and have found a bug, regression, security issue, UX problem, or spec violation. QMesh's Signal Engine will deduplicate, score by severity × confidence, and route high-value findings to human QA reviewers. Requires authentication: set environment variable QMESH_USER_TOKEN to a Supabase JWT for a user who owns the target task (or an admin). Without the token, the call will fail with permission denied. The user can retrieve their JWT by logging into q-mesh.com and copying the token from the browser's dev tools.",
+    inputSchema: {
+      type: "object",
+      required: ["task_id", "title", "severity"],
+      properties: {
+        task_id: {
+          type: "string",
+          description: "The QMesh task ID this signal belongs to. Use get_platform_stats / list_pricing_plans only indirectly — ask the user for their task_id explicitly or have them copy it from their task detail page.",
+        },
+        title: {
+          type: "string",
+          description: "Short, specific title of the issue (e.g. 'Search bar accepts non-existent stock codes without validation'). 50–140 characters ideal.",
+        },
+        description: {
+          type: "string",
+          description: "Longer explanation of what was observed and why it matters.",
+        },
+        reproduction_steps: {
+          type: "string",
+          description: "Numbered steps to reproduce the issue.",
+        },
+        severity: {
+          type: "string",
+          enum: ["critical", "high", "medium", "low"],
+          description: "Your honest estimate of severity. critical = security breach / data loss / cannot complete core flow; high = key feature broken; medium = noticeable defect with workaround; low = minor UX / cosmetic.",
+        },
+        category_guess: {
+          type: "string",
+          description: "Optional category hint, e.g. form-ux, security, error-ux, routing, visual-regression, data-integrity, performance, crash, i18n.",
+        },
+        pattern_code: {
+          type: "string",
+          description: "Optional pattern code from QMesh's Bug Pattern library if you recognize this as a known pattern (e.g. 'PAT-0004'). Adds +0.3 score bonus. Use search_bug_patterns to find matching patterns first.",
+        },
+        submitted_by: {
+          type: "string",
+          description: "Identifier of the AI/tool submitting, e.g. 'claude-opus-4-7' or 'playwright-axe'. Defaults to 'mcp-client'.",
+        },
+        confidence: {
+          type: "number",
+          description: "Your confidence this is a real issue (0–1). Defaults to 0.7.",
+        },
+      },
     },
   },
   {
@@ -113,6 +163,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "search_bug_patterns":
         data = await searchBugPatterns((args ?? {}) as SearchBugPatternsArgs);
         break;
+      case "submit_ai_signal": {
+        const signalId = await submitAiSignal(args as unknown as SubmitAiSignalArgs);
+        data = { signal_id: signalId, status: "submitted", message: "Signal submitted to QMesh. It will be deduped, scored, and routed for human judgment if high-value." };
+        break;
+      }
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
