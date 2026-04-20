@@ -17,6 +17,7 @@ All tools are **read-only** and hit QMesh's public API; no authentication requir
 | `get_platform_stats` | Platform-wide metrics: testers, QA-certified testers, businesses, bugs, tasks |
 | `get_leaderboard` | Day / week / month / year tester rankings with QIS and bug stats |
 | `list_pricing_plans` | Publicly available testing plans with budget, features, refund policy |
+| `search_bug_patterns` | De-identified Bug Pattern knowledge base (scenario templates, detection techniques, checklists). Filter by category, severity, domain, or free-text. |
 
 ## Install
 
@@ -62,6 +63,9 @@ Use the same stdio transport config. Refer to your client's MCP setup docs.
 - "What testing plans does QMesh offer and what's included?"
 - "How many active testers are on QMesh right now?"
 - "Who's on the QMesh weekly leaderboard?"
+- "Search QMesh bug patterns about XSS"
+- "What common form-ux bugs does QMesh have documented?"
+- "List all critical security bug patterns from QMesh"
 
 ## Development
 

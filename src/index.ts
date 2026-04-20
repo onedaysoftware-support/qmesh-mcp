@@ -9,11 +9,13 @@ import {
   getLeaderboard,
   getPlatformStats,
   listPricingPlans,
+  searchBugPatterns,
   type LeaderboardPeriod,
+  type SearchBugPatternsArgs,
 } from "./qmesh-client.js";
 
 const server = new Server(
-  { name: "qmesh-mcp", version: "0.1.0" },
+  { name: "qmesh-mcp", version: "0.2.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -51,6 +53,40 @@ const TOOLS = [
       properties: {},
     },
   },
+  {
+    name: "search_bug_patterns",
+    description:
+      "Search QMesh's public Bug Pattern knowledge base — de-identified scenario templates, bug patterns, and testing methodologies extracted from real crowdtesting reports. Each pattern includes trigger conditions, observed vs expected behavior, user impact, detection technique, and a checklist. Use when the user asks about common bug types (XSS, authorization, form validation, layout breakage, SPA routing, timezone handling, etc.), wants QA test ideas, or is researching how real-world products fail. You can filter by category, severity, or domain, or do free-text search across title and summary.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        category: {
+          type: "string",
+          description:
+            "Filter by pattern category. Common values: security, auth, form-ux, error-ux, visual-regression, routing, data-integrity, upload-file, performance, crash, i18n, concurrency, admin-panel, payment, notification, accessibility, onboarding, search-filter, data-export, other.",
+        },
+        severity: {
+          type: "string",
+          enum: ["critical", "high", "medium", "low"],
+          description: "Filter by typical severity of the pattern.",
+        },
+        domain: {
+          type: "string",
+          description:
+            "Filter by product domain (e.g. web, mobile, game, firmware, ai-product, hardware-companion).",
+        },
+        query: {
+          type: "string",
+          description:
+            "Free-text search applied to title and summary (case-insensitive substring match).",
+        },
+        limit: {
+          type: "integer",
+          description: "Max number of patterns to return (1-50, default 20).",
+        },
+      },
+    },
+  },
 ];
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -73,6 +109,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
       case "list_pricing_plans":
         data = await listPricingPlans();
+        break;
+      case "search_bug_patterns":
+        data = await searchBugPatterns((args ?? {}) as SearchBugPatternsArgs);
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);
