@@ -6,10 +6,17 @@ const SUPABASE_PUBLISHABLE_KEY =
 // Users can set QMESH_USER_TOKEN via Claude Desktop env to authenticate as themselves.
 const USER_TOKEN = process.env.QMESH_USER_TOKEN || "";
 
-function buildHeaders(requireAuth = false): HeadersInit {
+// 以 pkg 版本作為 x-client 版本標記（寫死避免執行時 fs 讀取）
+const MCP_VERSION = "0.3.1";
+
+function buildHeaders(requireAuth = false, toolName?: string): HeadersInit {
   const headers: Record<string, string> = {
     apikey: SUPABASE_PUBLISHABLE_KEY,
     "Content-Type": "application/json",
+    // 用於 Supabase log 辨識流量來源（與網站流量區分）
+    "x-client": `qmesh-mcp/${MCP_VERSION}`,
+    "x-client-tool": toolName || "unknown",
+    "User-Agent": `qmesh-mcp/${MCP_VERSION}`,
   };
   // For authenticated RPC (write operations), use user JWT when available.
   // Falls back to publishable key — the RPC will reject if it requires auth.uid().
@@ -24,11 +31,11 @@ function buildHeaders(requireAuth = false): HeadersInit {
 async function callRpc<T>(
   name: string,
   params: Record<string, unknown> = {},
-  options: { auth?: boolean } = {}
+  options: { auth?: boolean; toolName?: string } = {}
 ): Promise<T> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
     method: "POST",
-    headers: buildHeaders(options.auth),
+    headers: buildHeaders(options.auth, options.toolName || name),
     body: JSON.stringify(params),
   });
   if (!res.ok) {
@@ -37,9 +44,9 @@ async function callRpc<T>(
   return res.json() as Promise<T>;
 }
 
-async function queryTable<T>(path: string): Promise<T> {
+async function queryTable<T>(path: string, toolName?: string): Promise<T> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: buildHeaders(false),
+    headers: buildHeaders(false, toolName),
   });
   if (!res.ok) {
     throw new Error(`Query ${path} failed: ${res.status} ${await res.text()}`);
@@ -57,7 +64,7 @@ export interface PlatformStats {
 }
 
 export async function getPlatformStats(): Promise<PlatformStats> {
-  return callRpc<PlatformStats>("get_platform_stats");
+  return callRpc<PlatformStats>("get_platform_stats", {}, { toolName: "get_platform_stats" });
 }
 
 export type LeaderboardPeriod = "day" | "week" | "month" | "year";
@@ -65,7 +72,7 @@ export type LeaderboardPeriod = "day" | "week" | "month" | "year";
 export async function getLeaderboard(
   period: LeaderboardPeriod = "month"
 ): Promise<unknown[]> {
-  return callRpc<unknown[]>("get_leaderboard", { p_period: period });
+  return callRpc<unknown[]>("get_leaderboard", { p_period: period }, { toolName: "get_leaderboard" });
 }
 
 export interface PricingPlan {
@@ -82,7 +89,8 @@ export interface PricingPlan {
 export async function listPricingPlans(): Promise<PricingPlan[]> {
   return queryTable<PricingPlan[]>(
     "test_plans?select=name,budget,original_price,features,refund_text,emoji,sort_order,badge_text" +
-      "&is_visible=eq.true&is_online=eq.true&is_deleted=eq.false&order=sort_order"
+      "&is_visible=eq.true&is_online=eq.true&is_deleted=eq.false&order=sort_order",
+    "list_pricing_plans"
   );
 }
 
@@ -144,7 +152,7 @@ export async function submitAiSignal(args: SubmitAiSignalArgs): Promise<string> 
       p_submitted_by:  args.submitted_by ?? "mcp-client",
       p_confidence:    args.confidence ?? 0.7,
     },
-    { auth: true }
+    { auth: true, toolName: "submit_ai_signal" }
   );
   return id;
 }
@@ -169,5 +177,5 @@ export async function searchBugPatterns(
   params.push(`limit=${limit}`);
   params.push("order=severity_typical.asc,source_bug_count.desc");
 
-  return queryTable<BugPattern[]>(`bug_patterns?${params.join("&")}`);
+  return queryTable<BugPattern[]>(`bug_patterns?${params.join("&")}`, "search_bug_patterns");
 }

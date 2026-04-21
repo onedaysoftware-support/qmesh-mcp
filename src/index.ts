@@ -17,7 +17,7 @@ import {
 } from "./qmesh-client.js";
 
 const server = new Server(
-  { name: "qmesh-mcp", version: "0.3.0" },
+  { name: "qmesh-mcp", version: "0.3.1" },
   { capabilities: { tools: {} } }
 );
 
