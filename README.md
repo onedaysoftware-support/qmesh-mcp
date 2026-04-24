@@ -27,7 +27,7 @@ QMesh combines **AI-detected signals** with **human QA judgment** to produce rel
 | `get_leaderboard` | none | Day / week / month / year tester rankings with QIS, critical/high bug counts, effective rate |
 | `list_pricing_plans` | none | Public testing plans with budget, features, refund policy |
 | `search_bug_patterns` | none | De-identified Bug Pattern knowledge base — scenario templates, detection techniques, checklists. Filter by category, severity, domain, or free-text |
-| `submit_ai_signal` | **user JWT** | Submit an AI-detected quality signal on a task you own. QMesh dedupes, scores (confidence × severity × pattern match), and routes high-value signals to human QA |
+| `submit_ai_signal` | **API Key** | Submit an AI-detected quality signal on a task you own. QMesh dedupes, scores (confidence × severity × pattern match), and routes high-value signals to human QA |
 
 All tools except `submit_ai_signal` work without authentication.
 
@@ -74,7 +74,7 @@ Add to your Claude Desktop config:
       "command": "npx",
       "args": ["-y", "@q-mesh/mcp"],
       "env": {
-        "QMESH_USER_TOKEN": "<YOUR_SUPABASE_JWT_FROM_Q-MESH.COM>"
+        "QMESH_API_KEY": "qk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
       }
     }
   }
@@ -96,17 +96,21 @@ On Windows wrap `npx` with `cmd /c`:
 
 Restart Claude Desktop. Hammer icon should show **5 QMesh tools**.
 
-### Getting `QMESH_USER_TOKEN`
+### Getting `QMESH_API_KEY`
 
 Only needed for `submit_ai_signal`. All read-only tools work without it.
 
-1. Log in to [q-mesh.com](https://q-mesh.com) (the account must own the target task, or be an admin)
-2. Open DevTools → **Application** → **Local Storage** → `https://q-mesh.com`
-3. Find key `sb-cvizjnidcgonqsrwxubz-auth-token`
-4. Copy the `access_token` value
-5. Paste into your config `env.QMESH_USER_TOKEN`
+1. Log in to [q-mesh.com](https://q-mesh.com) (the account must own the target task, or be an admin).
+2. Go to **Settings → API Keys** and click **Create API Key**.
+3. Give it a name (e.g. "Claude Desktop") and copy the generated key starting with `qk_`.
+   > ⚠️ The full key is shown **only once** — save it before closing the dialog.
+4. Paste into your config `env.QMESH_API_KEY`.
 
-> ⚠️ JWTs expire (~1 hour). You'll need to refresh periodically. A long-lived API Key mechanism is on the roadmap.
+API keys are long-lived (default 90 days) and can be revoked from the same page any time.
+
+#### Legacy: `QMESH_USER_TOKEN` (deprecated)
+
+If you cannot create an API Key yet, a Supabase JWT still works as a fallback — pull `access_token` from DevTools → Local Storage → `sb-cvizjnidcgonqsrwxubz-auth-token`. Note: JWTs expire in ~1 hour, so this is not recommended for persistent use.
 
 ---
 
@@ -204,7 +208,9 @@ Follow [github.com/onedaysoftware-support/qmesh-mcp](https://github.com/onedayso
 
 **"permission denied" on `submit_ai_signal`** — either JWT expired, or you're not the task owner (submission requires `tasks.business_id = auth.uid()` or admin role).
 
-**Tool calls return 401** — `QMESH_USER_TOKEN` is stale. Re-copy from q-mesh.com DevTools.
+**`submit_ai_signal` returns "invalid or expired api key"** — your `QMESH_API_KEY` is either mistyped, revoked, or past its 90-day expiry. Create a new one at q-mesh.com Settings → API Keys.
+
+**`submit_ai_signal` returns "permission denied"** — the task you're targeting doesn't belong to the API key's owner (or the owner is not admin).
 
 ---
 

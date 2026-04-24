@@ -2,12 +2,16 @@ const SUPABASE_URL = "https://cvizjnidcgonqsrwxubz.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY =
   "sb_publishable_Dkp1VuzTKHAdV3UOaW2Zuw_VDd_yO4p";
 
-// Optional user JWT for authenticated calls (e.g. submit_ai_signal).
-// Users can set QMESH_USER_TOKEN via Claude Desktop env to authenticate as themselves.
+// Auth for write operations (submit_ai_signal):
+//   Preferred: QMESH_API_KEY — long-lived key created in q-mesh.com settings.
+//     Uses submit_ai_signal_v2 RPC; no JWT needed.
+//   Legacy:   QMESH_USER_TOKEN — Supabase session JWT (1 hr expiry, pulled from DevTools).
+//     Kept for backward compat; will be deprecated.
+const API_KEY = process.env.QMESH_API_KEY || "";
 const USER_TOKEN = process.env.QMESH_USER_TOKEN || "";
 
 // 以 pkg 版本作為 x-client 版本標記（寫死避免執行時 fs 讀取）
-const MCP_VERSION = "0.3.1";
+const MCP_VERSION = "0.4.0";
 
 function buildHeaders(requireAuth = false, toolName?: string): HeadersInit {
   const headers: Record<string, string> = {
@@ -139,6 +143,33 @@ export interface SubmitAiSignalArgs {
 }
 
 export async function submitAiSignal(args: SubmitAiSignalArgs): Promise<string> {
+  // Preferred: API Key → submit_ai_signal_v2 (no JWT needed)
+  if (API_KEY) {
+    const id = await callRpc<string>(
+      "submit_ai_signal_v2",
+      {
+        p_api_key:      API_KEY,
+        p_task_id:      args.task_id,
+        p_title:        args.title,
+        p_description:  args.description ?? null,
+        p_reproduction: args.reproduction_steps ?? null,
+        p_severity:     args.severity,
+        p_category:     args.category_guess ?? null,
+        p_pattern_code: args.pattern_code ?? null,
+        p_confidence:   args.confidence ?? 0.7,
+      },
+      { auth: false, toolName: "submit_ai_signal" }
+    );
+    return id;
+  }
+
+  // Legacy: JWT token → original submit_ai_signal (deprecated; kept for backward compat)
+  if (!USER_TOKEN) {
+    throw new Error(
+      "submit_ai_signal requires QMESH_API_KEY (preferred) or QMESH_USER_TOKEN (legacy). " +
+      "Create an API key at https://q-mesh.com/business/settings.html"
+    );
+  }
   const id = await callRpc<string>(
     "submit_ai_signal",
     {
