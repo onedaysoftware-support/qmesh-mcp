@@ -5,7 +5,7 @@
 [![Node](https://img.shields.io/badge/node-%E2%89%A518-brightgreen)](#install)
 [![MCP](https://img.shields.io/badge/Model_Context_Protocol-stdio-000000)](https://modelcontextprotocol.io)
 
-Query the [QMesh](https://q-mesh.com) crowdtesting platform from Claude Desktop, Cursor, Continue, and any other [Model Context Protocol](https://modelcontextprotocol.io) client.
+Query the [QMesh](https://q-mesh.com) crowdtesting platform from Claude Code, Cursor, Claude Desktop, Codex, and any other [Model Context Protocol](https://modelcontextprotocol.io) client.
 
 QMesh combines **AI-detected signals** with **human QA judgment** to produce release-confidence decisions. This MCP server lets your AI assistant surface QMesh data on demand, and (with auth) submit AI-detected quality issues into QMesh's Signal Engine for human verification.
 
@@ -125,7 +125,7 @@ If you cannot create an API Key yet, a Supabase JWT still works as a fallback â€
 
 ---
 
-## Cursor / Continue / Other MCP clients
+## Claude Code / Cursor / Codex / Other MCP clients
 
 Use the same stdio transport config. Refer to your client's MCP setup docs.
 
