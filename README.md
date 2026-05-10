@@ -21,15 +21,26 @@ QMesh combines **AI-detected signals** with **human QA judgment** to produce rel
 
 ## Tools
 
-| Tool | Auth | Description |
-|------|------|-------------|
-| `get_platform_stats` | none | Platform-wide metrics — testers, QA-certified testers, businesses, bugs, tasks |
-| `get_leaderboard` | none | Day / week / month / year tester rankings with QIS, critical/high bug counts, effective rate |
-| `list_pricing_plans` | none | Public testing plans with budget, features, refund policy |
-| `search_bug_patterns` | none | De-identified Bug Pattern knowledge base — scenario templates, detection techniques, checklists. Filter by category, severity, domain, or free-text |
-| `submit_ai_signal` | **API Key** | Submit an AI-detected quality signal on a task you own. QMesh dedupes, scores (confidence × severity × pattern match), and routes high-value signals to human QA |
+### Read-only (no auth)
 
-All tools except `submit_ai_signal` work without authentication.
+| Tool | Description |
+|------|-------------|
+| `get_platform_stats` | Platform-wide metrics — testers, QA-certified testers, businesses, bugs, tasks |
+| `get_leaderboard` | Day / week / month / year tester rankings with QIS, critical/high bug counts, effective rate |
+| `list_pricing_plans` | Public testing plans with budget, features, refund policy |
+| `search_bug_patterns` | De-identified Bug Pattern knowledge base — scenario templates, detection techniques, checklists. Filter by category, severity, domain, or free-text |
+
+### Action tools (require API Key)
+
+| Tool | Description |
+|------|-------------|
+| `submit_ai_signal` | Submit an AI-detected quality signal on a task you own. QMesh dedupes, scores (confidence × severity × pattern match), and routes high-value signals to human QA |
+| `create_test_task` 🆕 | Launch a new crowdtesting task on QMesh. **No payment required for now** (budget=0, behaves like any other free QMesh task): real testers may pick it up and report bugs. Rate limited to 5 tasks per API key per 24 hours |
+| `get_task_status` 🆕 | Track a task's progress: state, bug counts grouped by severity and status |
+| `list_bugs` 🆕 | Pull bugs reported on a task; filter by severity / status; up to 100 per call |
+| `export_report` 🆕 | Generate a Markdown release-readiness report (severity / status tables, top-10 bugs). Useful for AI deploy decisions, Slack/Notion posting, or PR comments |
+
+🆕 = added in v0.5.0. The 4 action tools enable AI agents to **autonomously launch and track crowdtesting** without human intervention — closing the loop from "AI finds bug" to "humans verify it" without leaving the IDE.
 
 ---
 
@@ -94,11 +105,11 @@ On Windows wrap `npx` with `cmd /c`:
 }
 ```
 
-Restart Claude Desktop. Hammer icon should show **5 QMesh tools**.
+Restart Claude Desktop. Hammer icon should show **9 QMesh tools** (4 read-only + 5 action tools, the latter need `QMESH_API_KEY`).
 
 ### Getting `QMESH_API_KEY`
 
-Only needed for `submit_ai_signal`. All read-only tools work without it.
+Required for the 5 action tools (`submit_ai_signal`, `create_test_task`, `get_task_status`, `list_bugs`, `export_report`). The 4 read-only tools work without it.
 
 1. Log in to [q-mesh.com](https://q-mesh.com) (the account must own the target task, or be an admin).
 2. Go to **Settings → API Keys** and click **Create API Key**.
@@ -135,6 +146,12 @@ Once installed, try these with Claude:
 **With auth (for task owners):**
 - "I'm testing my QMesh task `<task-id>` and the login page accepts non-existent accounts. Submit this as an AI signal with severity high."
 - "Run accessibility checks on my product and submit any WCAG violations you find as signals to task `<task-id>`."
+
+**Action tools (v0.5+):**
+- "Launch a QMesh test for my e-commerce checkout flow — title 'Cart 結帳流程驗收', description 'Verify the full cart-to-payment flow works on mobile Safari and Chrome', priority high, max 7 days."
+- "Show me the status of QMesh task `<task-id>` — how many bugs found, what severity?"
+- "List all critical and high-severity bugs on task `<task-id>` that are still pending."
+- "Generate a release-readiness Markdown report for task `<task-id>` so I can decide whether to deploy."
 
 ---
 
@@ -183,20 +200,23 @@ printf '%s\n' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | node dist/index.js
 ```
 
-Should list all 5 tools.
+Should list all **9 tools**.
 
 ---
 
 ## Roadmap
 
-Current release (`0.3.x`): **5 tools — 4 read-only + 1 write (auth-gated)**.
+Current release (`0.5.x`): **9 tools — 4 read-only + 5 action tools (API Key gated)**.
+
+Done since `0.3`:
+- ✅ API Key mechanism (long-lived, revocable, replaces JWT)
+- ✅ `create_test_task` (no payment required for now)
+- ✅ `get_task_status` / `list_bugs` / `export_report`
 
 Planned:
-
-- **API Key mechanism** — replace 1-hour JWT with long-lived revocable keys
-- **`post_task`** — create a new testing task (requires funded business account)
-- **`get_task_status`** — poll a task's progress and bug summary
 - **`get_release_readiness`** — compose QCI score from signals + bugs + coverage (the flagship future tool)
+- **`subscribe_to_task`** — server-sent events / webhook for new bugs as they arrive
+- **Custom Pattern Library** — per-org pattern injection (your house style, your false-positive list)
 
 Follow [github.com/onedaysoftware-support/qmesh-mcp](https://github.com/onedaysoftware-support/qmesh-mcp) for updates.
 
@@ -211,6 +231,31 @@ Follow [github.com/onedaysoftware-support/qmesh-mcp](https://github.com/onedayso
 **`submit_ai_signal` returns "invalid or expired api key"** — your `QMESH_API_KEY` is either mistyped, revoked, or past its 90-day expiry. Create a new one at q-mesh.com Settings → API Keys.
 
 **`submit_ai_signal` returns "permission denied"** — the task you're targeting doesn't belong to the API key's owner (or the owner is not admin).
+
+**`create_test_task` returns "rate limit exceeded"** — you've created 5 tasks within the last 24 hours per API key. Wait, or use a different API key.
+
+**`create_test_task` says "title must be at least 5 characters" / "description must be at least 20 characters"** — these floors exist so real testers know what to actually test. Make titles concrete and descriptions actionable.
+
+**`get_task_status` / `list_bugs` / `export_report` returns "task does not belong to api key owner"** — the API key's owner is not the task's `business_id` (and not admin). Use a key owned by the task creator.
+
+---
+
+## Changelog
+
+### 0.5.0 (2026-05-10)
+
+- ✨ Added 4 B-side action tools: `create_test_task`, `get_task_status`, `list_bugs`, `export_report`
+- ✨ AI agents can now autonomously launch and track crowdtesting tasks from inside Claude Code / Cursor / Codex
+- 🆓 `create_test_task` requires no payment for now (budget=0)
+- 🛡️ Rate limited to 5 tasks per API key per 24 hours
+
+### 0.4.0
+
+- ✨ API Key auth mechanism (long-lived, revocable) replaces 1-hour JWT for write tools
+
+### 0.3.x
+
+- 5 tools: 4 read-only + `submit_ai_signal`
 
 ---
 

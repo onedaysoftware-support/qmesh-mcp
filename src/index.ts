@@ -11,13 +11,19 @@ import {
   listPricingPlans,
   searchBugPatterns,
   submitAiSignal,
+  createTestTask,
+  getTaskStatus,
+  listBugs,
+  exportReport,
   type LeaderboardPeriod,
   type SearchBugPatternsArgs,
   type SubmitAiSignalArgs,
+  type CreateTestTaskArgs,
+  type ListBugsArgs,
 } from "./qmesh-client.js";
 
 const server = new Server(
-  { name: "qmesh-mcp", version: "0.3.1" },
+  { name: "qmesh-mcp", version: "0.5.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -137,6 +143,63 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: "create_test_task",
+    description:
+      "Create a new crowdtesting task on QMesh on behalf of a business owner. Use when the user (typically a developer or PM) asks to 'launch a test', 'send this app for testing', or 'get bugs found by real testers'. Currently runs as a free-tier task (budget=0, like any free task on QMesh): real testers may pick this up and report bugs; testers earn standard points. Rate limited to 5 free tasks per API key per 24 hours. Paid plan upgrade can be wired later. Requires QMESH_API_KEY env var.",
+    inputSchema: {
+      type: "object",
+      required: ["title", "description"],
+      properties: {
+        title: { type: "string", description: "Short task title (≥ 5 chars)." },
+        description: { type: "string", description: "Detailed scope: what to test, what's important. ≥ 20 chars so testers know what to do." },
+        app_url: { type: "string", description: "URL to the app/site under test (optional)." },
+        category: { type: "string", description: "Task category, e.g. 'functional', 'ui', 'security', 'performance'. Default: functional." },
+        priority: { type: "string", enum: ["low", "medium", "high", "critical"], description: "Default: medium." },
+        budget: { type: "integer", description: "Reward budget in NT$ (informational in sandbox mode; default 0)." },
+        max_days: { type: "integer", description: "Days until task auto-closes (1–30, default 7)." },
+      },
+    },
+  },
+  {
+    name: "get_task_status",
+    description:
+      "Get current status of a QMesh task: state, progress, bugs found grouped by severity and status. Use to track ongoing tests. Requires QMESH_API_KEY (must be the task owner or admin).",
+    inputSchema: {
+      type: "object",
+      required: ["task_id"],
+      properties: {
+        task_id: { type: "string", description: "QMesh task ID (e.g. 'T260510120030456')." },
+      },
+    },
+  },
+  {
+    name: "list_bugs",
+    description:
+      "List bugs reported on a QMesh task, with optional filters by severity and status. Returns up to 100 bugs. Use to pull a fresh list of bugs for review, deploy decision, or feeding back into AI analysis. Requires QMESH_API_KEY (must be the task owner or admin).",
+    inputSchema: {
+      type: "object",
+      required: ["task_id"],
+      properties: {
+        task_id: { type: "string", description: "QMesh task ID." },
+        severity: { type: "string", enum: ["critical", "high", "medium", "low"], description: "Optional severity filter." },
+        status: { type: "string", description: "Optional status filter, e.g. 'pending', 'accepted', 'rejected'." },
+        limit: { type: "integer", description: "Max bugs to return (1-100, default 20)." },
+      },
+    },
+  },
+  {
+    name: "export_report",
+    description:
+      "Generate a Markdown release-readiness report for a QMesh task. Includes summary tables (severity / status), top-10 bugs sorted by status + severity, and metadata. Useful for: feeding into AI deploy decision context, posting to Slack/Notion, or attaching to PR comments. Requires QMESH_API_KEY (must be the task owner or admin).",
+    inputSchema: {
+      type: "object",
+      required: ["task_id"],
+      properties: {
+        task_id: { type: "string", description: "QMesh task ID." },
+      },
+    },
+  },
 ];
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -168,6 +231,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         data = { signal_id: signalId, status: "submitted", message: "Signal submitted to QMesh. It will be deduped, scored, and routed for human judgment if high-value." };
         break;
       }
+      case "create_test_task":
+        data = await createTestTask(args as unknown as CreateTestTaskArgs);
+        break;
+      case "get_task_status":
+        data = await getTaskStatus((args as { task_id: string }).task_id);
+        break;
+      case "list_bugs":
+        data = await listBugs(args as unknown as ListBugsArgs);
+        break;
+      case "export_report":
+        data = await exportReport((args as { task_id: string }).task_id);
+        break;
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

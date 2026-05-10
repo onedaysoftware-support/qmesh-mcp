@@ -11,7 +11,7 @@ const API_KEY = process.env.QMESH_API_KEY || "";
 const USER_TOKEN = process.env.QMESH_USER_TOKEN || "";
 
 // 以 pkg 版本作為 x-client 版本標記（寫死避免執行時 fs 讀取）
-const MCP_VERSION = "0.4.0";
+const MCP_VERSION = "0.5.0";
 
 function buildHeaders(requireAuth = false, toolName?: string): HeadersInit {
   const headers: Record<string, string> = {
@@ -209,4 +209,76 @@ export async function searchBugPatterns(
   params.push("order=severity_typical.asc,source_bug_count.desc");
 
   return queryTable<BugPattern[]>(`bug_patterns?${params.join("&")}`, "search_bug_patterns");
+}
+
+// =============================================================================
+// B-side action tools (v0.5.0+) — require QMESH_API_KEY
+// =============================================================================
+
+function requireApiKey(toolName: string): string {
+  if (!API_KEY) {
+    throw new Error(
+      `${toolName} requires QMESH_API_KEY env var. ` +
+      "Create one at https://q-mesh.com/business/settings.html"
+    );
+  }
+  return API_KEY;
+}
+
+export interface CreateTestTaskArgs {
+  title: string;
+  description: string;
+  app_url?: string;
+  category?: string;
+  priority?: "low" | "medium" | "high" | "critical";
+  budget?: number;
+  max_days?: number;
+}
+
+export async function createTestTask(args: CreateTestTaskArgs): Promise<unknown> {
+  const key = requireApiKey("create_test_task");
+  return callRpc("create_test_task", {
+    p_api_key: key,
+    p_title: args.title,
+    p_description: args.description,
+    p_app_url: args.app_url ?? null,
+    p_category: args.category ?? "functional",
+    p_priority: args.priority ?? "medium",
+    p_budget: args.budget ?? 0,
+    p_max_days: args.max_days ?? 7,
+  }, { toolName: "create_test_task" });
+}
+
+export async function getTaskStatus(taskId: string): Promise<unknown> {
+  const key = requireApiKey("get_task_status");
+  return callRpc("get_task_status", {
+    p_api_key: key,
+    p_task_id: taskId,
+  }, { toolName: "get_task_status" });
+}
+
+export interface ListBugsArgs {
+  task_id: string;
+  severity?: "critical" | "high" | "medium" | "low";
+  status?: string;
+  limit?: number;
+}
+
+export async function listBugs(args: ListBugsArgs): Promise<unknown> {
+  const key = requireApiKey("list_bugs");
+  return callRpc("list_bugs", {
+    p_api_key: key,
+    p_task_id: args.task_id,
+    p_severity: args.severity ?? null,
+    p_status: args.status ?? null,
+    p_limit: args.limit ?? 20,
+  }, { toolName: "list_bugs" });
+}
+
+export async function exportReport(taskId: string): Promise<unknown> {
+  const key = requireApiKey("export_report");
+  return callRpc("export_report", {
+    p_api_key: key,
+    p_task_id: taskId,
+  }, { toolName: "export_report" });
 }
