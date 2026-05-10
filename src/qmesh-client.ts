@@ -11,7 +11,7 @@ const API_KEY = process.env.QMESH_API_KEY || "";
 const USER_TOKEN = process.env.QMESH_USER_TOKEN || "";
 
 // 以 pkg 版本作為 x-client 版本標記（寫死避免執行時 fs 讀取）
-const MCP_VERSION = "0.5.0";
+const MCP_VERSION = "0.5.1";
 
 function buildHeaders(requireAuth = false, toolName?: string): HeadersInit {
   const headers: Record<string, string> = {
@@ -281,4 +281,56 @@ export async function exportReport(taskId: string): Promise<unknown> {
     p_api_key: key,
     p_task_id: taskId,
   }, { toolName: "export_report" });
+}
+
+// =============================================================================
+// verify_install — smoke test (no auth required)
+// =============================================================================
+// 目的：讓 AI agent 在初次安裝後立刻有「✅ MCP 接通」的明確 feedback，
+// 縮短 install → first-success 的 friction（從 5 分鐘到 < 5 秒）。
+export async function verifyInstall(): Promise<unknown> {
+  const hasApiKey = !!API_KEY;
+  let api_reachable = false;
+  let api_error: string | null = null;
+
+  // 真的去 ping 一次最便宜的 endpoint，驗證 MCP <-> Supabase 連線
+  try {
+    await getPlatformStats();
+    api_reachable = true;
+  } catch (e) {
+    api_error = e instanceof Error ? e.message : String(e);
+  }
+
+  const status = api_reachable
+    ? "✅ MCP loaded and QMesh API reachable"
+    : "⚠️ MCP loaded but cannot reach QMesh API";
+
+  return {
+    status,
+    mcp_version: MCP_VERSION,
+    api_reachable,
+    api_error,
+    api_key_configured: hasApiKey,
+    tools: {
+      read_only_no_auth: 5,
+      action_tools_need_api_key: 5,
+      total: 10,
+    },
+    suggested_next: hasApiKey
+      ? [
+          "✅ All 10 tools enabled.",
+          "Try: 'use qmesh to find critical security bug patterns'",
+          "Try: 'use qmesh to create a test task for my checkout flow'",
+          "Try: 'use qmesh to export a release report for task <task-id>'",
+        ]
+      : [
+          "Read-only tools work now (no auth):",
+          "  → 'use qmesh to find critical security bug patterns'",
+          "  → 'use qmesh to show this month tester leaderboard'",
+          "To enable action tools (create_test_task / list_bugs / export_report):",
+          "  → Get an API key: https://q-mesh.com/business/settings.html",
+          "  → Set env var QMESH_API_KEY=qk_xxxxx",
+        ],
+    docs: "https://q-mesh.com/mcp.html",
+  };
 }

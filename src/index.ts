@@ -15,6 +15,7 @@ import {
   getTaskStatus,
   listBugs,
   exportReport,
+  verifyInstall,
   type LeaderboardPeriod,
   type SearchBugPatternsArgs,
   type SubmitAiSignalArgs,
@@ -23,11 +24,20 @@ import {
 } from "./qmesh-client.js";
 
 const server = new Server(
-  { name: "qmesh-mcp", version: "0.5.0" },
+  { name: "qmesh-mcp", version: "0.5.1" },
   { capabilities: { tools: {} } }
 );
 
 const TOOLS = [
+  {
+    name: "verify_install",
+    description:
+      "Smoke test that QMesh MCP is connected and reachable. No auth required. Use this FIRST after installing to confirm the integration works. Returns: connection status, available tool count, whether API key is configured, suggested next prompts. If the user just installed @q-mesh/mcp or asks 'is qmesh working', call this tool.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
   {
     name: "get_platform_stats",
     description:
@@ -211,6 +221,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     let data: unknown;
     switch (name) {
+      case "verify_install":
+        data = await verifyInstall();
+        break;
       case "get_platform_stats":
         data = await getPlatformStats();
         break;

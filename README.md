@@ -25,6 +25,7 @@ QMesh combines **AI-detected signals** with **human QA judgment** to produce rel
 
 | Tool | Description |
 |------|-------------|
+| `verify_install` 🆕 | Smoke test that MCP is connected. Call this **first after install** to confirm everything works — returns status, tool count, suggested next prompts |
 | `get_platform_stats` | Platform-wide metrics — testers, QA-certified testers, businesses, bugs, tasks |
 | `get_leaderboard` | Day / week / month / year tester rankings with QIS, critical/high bug counts, effective rate |
 | `list_pricing_plans` | Public testing plans with budget, features, refund policy |
@@ -105,7 +106,9 @@ On Windows wrap `npx` with `cmd /c`:
 }
 ```
 
-Restart Claude Desktop. Hammer icon should show **9 QMesh tools** (4 read-only + 5 action tools, the latter need `QMESH_API_KEY`).
+Restart Claude Desktop. Hammer icon should show **10 QMesh tools** (5 read-only + 5 action tools, the latter need `QMESH_API_KEY`).
+
+**Tip:** ask Claude `"use qmesh verify_install"` first — instant smoke test, no auth needed.
 
 ### Getting `QMESH_API_KEY`
 
@@ -200,13 +203,13 @@ printf '%s\n' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' | node dist/index.js
 ```
 
-Should list all **9 tools**.
+Should list all **10 tools**.
 
 ---
 
 ## Roadmap
 
-Current release (`0.5.x`): **9 tools — 4 read-only + 5 action tools (API Key gated)**.
+Current release (`0.5.x`): **10 tools — 5 read-only + 5 action tools (API Key gated)**.
 
 Done since `0.3`:
 - ✅ API Key mechanism (long-lived, revocable, replaces JWT)
@@ -241,6 +244,11 @@ Follow [github.com/onedaysoftware-support/qmesh-mcp](https://github.com/onedayso
 ---
 
 ## Changelog
+
+### 0.5.1 (2026-05-10)
+
+- ✨ Added `verify_install` — instant smoke test for first-time installers (no auth)
+- 🩹 Reduces install → first-success friction from minutes to seconds
 
 ### 0.5.0 (2026-05-10)
 
